@@ -11,14 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Lock, Phone, ArrowRight } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { User, Mail, Lock, Phone, ArrowRight, ShoppingBag, Heart } from "lucide-react";
 import Link from "next/link";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.email("Invalid email address"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   phone: z.string().optional(),
+  userType: z.enum(['seller', 'buyer']),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -30,10 +32,17 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      userType: 'buyer',
+    },
   });
+
+  const selectedUserType = watch('userType');
 
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
@@ -43,6 +52,7 @@ export default function RegisterPage() {
       formData.append("name", data.name);
       formData.append("email", data.email);
       formData.append("password", data.password);
+      formData.append("userType", data.userType);
       if (data.phone) {
         formData.append("phone", data.phone);
       }
@@ -150,6 +160,89 @@ export default function RegisterPage() {
                   {...register("phone")}
                 />
               </div>
+            </div>
+
+            {/* User Type Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-gray-700">
+                I want to...
+              </Label>
+              <RadioGroup
+                value={selectedUserType}
+                onValueChange={(value) => setValue('userType', value as 'seller' | 'buyer')}
+                className="grid grid-cols-1 gap-3"
+              >
+                <div className="relative">
+                  <RadioGroupItem
+                    value="buyer"
+                    id="buyer"
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor="buyer"
+                    className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedUserType === 'buyer'
+                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                      selectedUserType === 'buyer' ? 'bg-blue-500' : 'bg-gray-200'
+                    }`}>
+                      <Heart className={`w-4 h-4 ${
+                        selectedUserType === 'buyer' ? 'text-white' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <span className={`font-medium ${
+                      selectedUserType === 'buyer' ? 'text-blue-700' : 'text-gray-700'
+                    }`}>
+                      Buy Used Products
+                    </span>
+                    <span className={`text-xs text-center mt-1 ${
+                      selectedUserType === 'buyer' ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
+                      I want to buy used products
+                    </span>
+                  </Label>
+                </div>
+
+                <div className="relative">
+                  <RadioGroupItem
+                    value="seller"
+                    id="seller"
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor="seller"
+                    className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      selectedUserType === 'seller'
+                        ? 'border-green-500 bg-green-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                      selectedUserType === 'seller' ? 'bg-green-500' : 'bg-gray-200'
+                    }`}>
+                      <ShoppingBag className={`w-4 h-4 ${
+                        selectedUserType === 'seller' ? 'text-white' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <span className={`font-medium ${
+                      selectedUserType === 'seller' ? 'text-green-700' : 'text-gray-700'
+                    }`}>
+                      Sell My Products
+                    </span>
+                    <span className={`text-xs text-center mt-1 ${
+                      selectedUserType === 'seller' ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                      I want to sell my used products
+                    </span>
+                  </Label>
+                </div>
+              </RadioGroup>
+              {errors.userType && (
+                <p className="text-sm text-red-600">{errors.userType.message}</p>
+              )}
             </div>
 
             <Button

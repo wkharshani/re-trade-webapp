@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createSession, getRedirectPath } from "./session";
 
 // Validation schemas
 const registerSchema = z.object({
@@ -12,6 +13,7 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   phone: z.string().optional(),
+  userType: z.enum(['seller', 'buyer']).default('buyer'),
 });
 
 const loginSchema = z.object({
@@ -26,6 +28,7 @@ export async function registerUser(formData: FormData) {
       email: formData.get("email") as string,
       password: formData.get("password") as string,
       phone: formData.get("phone") as string,
+      userType: (formData.get("userType") as 'seller' | 'buyer') || 'buyer',
     };
 
     // Validate input
@@ -50,6 +53,7 @@ export async function registerUser(formData: FormData) {
       email: validatedData.email.toLowerCase(),
       password: hashedPassword,
       phone: validatedData.phone || null,
+      userType: validatedData.userType,
     });
 
     return { success: true, message: "User registered successfully" };
@@ -92,8 +96,17 @@ export async function loginUser(formData: FormData) {
       return { success: false, error: "Invalid email or password" };
     }
 
-    // TODO: Implement session management here
-    return { success: true, message: "Login successful", user: user[0] };
+    // Create session and redirect path
+    const session = createSession(user[0]);
+    const redirectPath = getRedirectPath(user[0].userType);
+
+    return { 
+      success: true, 
+      message: "Login successful", 
+      user: user[0],
+      session,
+      redirectPath 
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const firstError = error.issues[0];

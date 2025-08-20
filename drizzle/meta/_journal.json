@@ -8,6 +8,13 @@
       "when": 1755689379273,
       "tag": "0000_smooth_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755707686362,
+      "tag": "0001_calm_raider",
+      "breakpoints": true
     }
   ]
 }
