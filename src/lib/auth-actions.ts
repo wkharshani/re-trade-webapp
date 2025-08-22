@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createSession } from "./session";
+import { createSession, destroySession } from "./session";
 
 // Validation schemas
 const registerSchema = z.object({
@@ -120,5 +120,19 @@ export async function loginUser(formData: FormData) {
       return { success: false, error: firstError?.message || "Validation failed" };
     }
     return { success: false, error: "Login failed" };
+  }
+}
+
+export async function logoutUser() {
+  try {
+    await destroySession();
+    return { 
+      success: true, 
+      message: "Logged out successfully",
+      redirectPath: "/login"
+    };
+  } catch (error) {
+    console.error("Logout error:", error);
+    return { success: false, error: "Failed to logout" };
   }
 }

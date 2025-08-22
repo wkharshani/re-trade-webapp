@@ -15,31 +15,46 @@ import {
   MapPin,
   Phone,
   Calendar,
-  Package
+  ShoppingCart,
+  User
 } from "lucide-react";
-// import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
+import { addToCart } from "@/lib/cart-actions";
+import { toast } from "sonner";
+
 import type { Product } from "@/db/schema";
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & {
+    seller?: {
+      name: string;
+      email: string;
+    };
+  };
   onEdit?: (productId: string) => void;
   onDelete?: (productId: string) => void;
   onToggleStatus?: (productId: string) => void;
   showActions?: boolean;
   variant?: 'default' | 'compact';
+  viewMode?: 'grid' | 'list';
+  isBuyerView?: boolean;
 }
 
-export default function ProductCard({ 
+export function ProductCard({ 
   product, 
   onEdit, 
   onDelete, 
   onToggleStatus,
   showActions = true,
-  variant = 'default'
+  variant = 'default',
+  viewMode = 'grid',
+  isBuyerView = false
 }: ProductCardProps) {
+  const router = useRouter();
   const [isImageLoading, setIsImageLoading] = useState(true);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImageIndex] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const mainImage = product.images && product.images.length > 0 
     ? product.images[0] 
@@ -79,6 +94,23 @@ export default function ProductCard({
     return type === 'household' 
       ? 'bg-purple-100 text-purple-800' 
       : 'bg-indigo-100 text-indigo-800';
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      setIsAddingToCart(true);
+      await addToCart(product.id, 1);
+      toast.success("Added to cart successfully!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to add to cart");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleViewProduct = () => {
+    router.push(`/buyer/products/${product.id}`);
   };
 
   if (variant === 'compact') {
@@ -159,9 +191,89 @@ export default function ProductCard({
     );
   }
 
+  // List view for buyer interface
+  if (isBuyerView && viewMode === 'list') {
+    return (
+      <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer" onClick={handleViewProduct}>
+        <CardContent className="p-4">
+          <div className="flex gap-4">
+            {/* Image */}
+            <div className="relative w-24 h-24 flex-shrink-0">
+              {isImageLoading && (
+                <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-md" />
+              )}
+              <img
+                src={mainImage}
+                alt={product.name}
+                className={`w-full h-full object-cover rounded-md ${
+                  isImageLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+              />
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg text-gray-900 truncate">{product.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{product.description}</p>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                    <Badge variant="secondary" className={getConditionColor(product.condition)}>
+                      {product.condition}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{product.location}</span>
+                    </div>
+                    {product.seller && (
+                      <div className="flex items-center gap-1">
+                        <User className="w-4 h-4" />
+                        <span>{product.seller.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900 mb-2">
+                    {formatPrice(Number(product.price))}
+                  </div>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart();
+                    }}
+                    disabled={isAddingToCart}
+                    className="w-full"
+                  >
+                    {isAddingToCart ? (
+                      "Adding..."
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Add to Cart
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
-      <Card className="hover:shadow-lg transition-all duration-200 group">
+      <Card className={`hover:shadow-lg transition-all duration-200 group ${isBuyerView ? 'cursor-pointer' : ''}`} onClick={isBuyerView ? handleViewProduct : undefined}>
         <CardHeader className="p-0">
           <div className="relative">
             {/* Image */}
@@ -283,7 +395,7 @@ export default function ProductCard({
             </div>
 
             {/* Action Buttons */}
-            {showActions && (
+            {showActions && !isBuyerView && (
               <div className="flex space-x-2">
                 {onEdit && (
                   <Button 
@@ -306,6 +418,35 @@ export default function ProductCard({
                     Delete
                   </Button>
                 )}
+              </div>
+            )}
+
+            {/* Buyer Actions */}
+            {isBuyerView && (
+              <div className="space-y-2">
+                {product.seller && (
+                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <User className="w-4 h-4" />
+                    <span>{product.seller.name}</span>
+                  </div>
+                )}
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart();
+                  }}
+                  disabled={isAddingToCart}
+                  className="w-full"
+                >
+                  {isAddingToCart ? (
+                    "Adding..."
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Add to Cart
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </div>
@@ -345,3 +486,5 @@ export default function ProductCard({
     </>
   );
 }
+
+

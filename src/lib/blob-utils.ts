@@ -1,5 +1,4 @@
 import { put, del } from '@vercel/blob';
-import { toast } from 'sonner';
 
 export interface BlobUploadResult {
   url: string;

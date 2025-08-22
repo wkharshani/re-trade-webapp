@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, ShoppingBag, Users, TrendingUp, Shield } from "lucide-react";
+import { ArrowRight, ShoppingBag, Users, Shield } from "lucide-react";
 
 export default function Home() {
   return (
