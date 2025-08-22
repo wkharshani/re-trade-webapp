@@ -7,10 +7,14 @@ import { eq, and, desc, asc } from "drizzle-orm";
 import { productFormSchema, productSchema } from "./validation-schemas";
 import { uploadMultipleImages, deleteMultipleImages } from "./blob-utils";
 import { revalidatePath } from "next/cache";
+import { requireSellerAuth } from "./session";
 
 // Create new product
 export async function createProduct(formData: FormData) {
   try {
+    // Get authenticated seller from session
+    const session = await requireSellerAuth();
+    
     const rawData = {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
@@ -53,8 +57,8 @@ export async function createProduct(formData: FormData) {
 
     const imageUrls = uploadResults.map(result => result.url);
 
-    // TODO: Get actual seller ID from session
-    const sellerId = "00000000-0000-0000-0000-000000000001"; // Valid UUID format for testing
+    // Get seller ID from authenticated session
+    const sellerId = session.userId;
 
     // Create product in database
     const newProduct = await db.insert(products).values({
@@ -92,6 +96,9 @@ export async function createProduct(formData: FormData) {
 // Update existing product
 export async function updateProduct(productId: string, formData: FormData) {
   try {
+    // Get authenticated seller from session
+    const session = await requireSellerAuth();
+    
     const rawData = {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
@@ -106,7 +113,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     // Validate input data
     const validatedData = productSchema.parse(rawData);
 
-    // Get existing product to check images
+    // Get existing product to check images and verify ownership
     const existingProduct = await db
       .select()
       .from(products)
@@ -114,6 +121,11 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     if (existingProduct.length === 0) {
       return { success: false, error: "Product not found" };
+    }
+
+    // Verify that the product belongs to the authenticated seller
+    if (existingProduct[0].sellerId !== session.userId) {
+      return { success: false, error: "You can only update your own products" };
     }
 
     const currentImages = existingProduct[0].images || [];
@@ -197,6 +209,9 @@ export async function updateProduct(productId: string, formData: FormData) {
 // Delete product
 export async function deleteProduct(productId: string) {
   try {
+    // Get authenticated seller from session
+    const session = await requireSellerAuth();
+    
     // Get product to access images
     const product = await db
       .select()
@@ -205,6 +220,11 @@ export async function deleteProduct(productId: string) {
 
     if (product.length === 0) {
       return { success: false, error: "Product not found" };
+    }
+
+    // Verify that the product belongs to the authenticated seller
+    if (product[0].sellerId !== session.userId) {
+      return { success: false, error: "You can only delete your own products" };
     }
 
     const productImages = product[0].images || [];
@@ -230,6 +250,9 @@ export async function deleteProduct(productId: string) {
 // Toggle product status (active/inactive)
 export async function toggleProductStatus(productId: string) {
   try {
+    // Get authenticated seller from session
+    const session = await requireSellerAuth();
+    
     const product = await db
       .select()
       .from(products)
@@ -237,6 +260,11 @@ export async function toggleProductStatus(productId: string) {
 
     if (product.length === 0) {
       return { success: false, error: "Product not found" };
+    }
+
+    // Verify that the product belongs to the authenticated seller
+    if (product[0].sellerId !== session.userId) {
+      return { success: false, error: "You can only modify your own products" };
     }
 
     const currentStatus = product[0].isActive;

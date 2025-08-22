@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
-import { validateImageFile, formatFileSize } from "@/lib/blob-utils";
+import { X, Upload } from "lucide-react";
+import { validateImageFile } from "@/lib/blob-utils";
 
 interface ImageUploadProps {
   images: string[];
-  onImagesChange: (images: string[]) => void;
+  onImagesChange: (images: string[], files: File[]) => void;
   maxImages?: number;
   className?: string;
 }
@@ -23,6 +23,7 @@ export default function ImageUpload({
 }: ImageUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -75,23 +76,33 @@ export default function ImageUpload({
     }
   };
 
-  const processFiles = async (files: File[]) => {
+  const processFiles = async (newFiles: File[]) => {
     setUploading(true);
     
     try {
       // Convert files to data URLs for preview
       const newImages: string[] = [];
       
-      for (const file of files) {
+      for (const file of newFiles) {
         const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            resolve(reader.result as string);
+          };
+          reader.onerror = () => {
+            reject(new Error(`Failed to read file: ${file.name}`));
+          };
           reader.readAsDataURL(file);
         });
         newImages.push(dataUrl);
       }
 
-      onImagesChange([...images, ...newImages]);
+      // Update both images and files
+      const updatedImages = [...images, ...newImages];
+      const updatedFiles = [...files, ...newFiles];
+      
+      setFiles(updatedFiles);
+      onImagesChange(updatedImages, updatedFiles);
     } catch (error) {
       console.error("Error processing files:", error);
       alert("Error processing files. Please try again.");
@@ -108,7 +119,9 @@ export default function ImageUpload({
 
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
-    onImagesChange(newImages);
+    const newFiles = files.filter((_, i) => i !== index);
+    setFiles(newFiles);
+    onImagesChange(newImages, newFiles);
   };
 
   const openFileDialog = () => {

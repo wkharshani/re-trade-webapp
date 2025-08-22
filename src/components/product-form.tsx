@@ -10,15 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { 
   Package, 
   Tag, 
   MapPin, 
   Phone, 
   DollarSign,
-  Info,
   AlertCircle
 } from "lucide-react";
 import ImageUpload from "./image-upload";
@@ -33,7 +30,7 @@ import type { ProductFormData } from "@/lib/validation-schemas";
 
 interface ProductFormProps {
   initialData?: Partial<ProductFormData>;
-  onSubmit: (data: ProductFormData) => Promise<void>;
+  onSubmit: (data: FormData) => Promise<void>;
   isSubmitting?: boolean;
   mode?: 'create' | 'edit';
 }
@@ -45,13 +42,14 @@ export default function ProductForm({
   mode = 'create'
 }: ProductFormProps) {
   const [images, setImages] = useState<string[]>(initialData?.images || []);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -68,71 +66,54 @@ export default function ProductForm({
     mode: "onBlur",
   });
 
+  // Sync images with form data whenever images change
+  const handleImagesChange = (newImages: string[], newFiles: File[]) => {
+    setImages(newImages);
+    setImageFiles(newFiles);
+    setValue("images", newImages);
+  };
+
   const selectedCategory = watch("category");
   const selectedProductType = watch("productType");
   const selectedCondition = watch("condition");
   
 
 
-  // Custom validation function
-  const isFormValid = () => {
-    const formData = watch();
-    const valid = (
-      formData.name &&
-      formData.description &&
-      formData.category &&
-      formData.condition &&
-      formData.price > 0 &&
-      formData.location &&
-      formData.contactNumber &&
-      images.length > 0
-    );
-    
-    console.log("Form validation:", {
-      name: !!formData.name,
-      description: !!formData.description,
-      category: !!formData.category,
-      condition: !!formData.condition,
-      price: formData.price > 0,
-      location: !!formData.location,
-      contactNumber: !!formData.contactNumber,
-      images: images.length > 0,
-      isValid: valid,
-      isSubmitting
-    });
-    
-    return valid;
-  };
-
   const handleFormSubmit = async (data: ProductFormData) => {
-    console.log("Form submitted with data:", data);
-    console.log("Images:", images);
-    
-    if (images.length === 0) {
+    if (imageFiles.length === 0) {
       alert("Please upload at least one image");
       return;
     }
 
-    const formData = {
-      ...data,
-      images,
-    };
-
-    console.log("Final form data:", formData);
-    console.log("Calling onSubmit...");
+    // Create FormData object with the actual files
+    const formData = new FormData();
+    
+    // Add all the form fields
+    formData.append("name", data.name);
+    formData.append("description", data.description);
+    formData.append("category", data.category);
+    formData.append("productType", data.productType);
+    formData.append("condition", data.condition);
+    formData.append("price", data.price.toString());
+    formData.append("location", data.location);
+    formData.append("contactNumber", data.contactNumber);
+    
+    // Add the actual image files
+    imageFiles.forEach((file) => {
+      formData.append("images", file);
+    });
     
     try {
       await onSubmit(formData);
-      console.log("onSubmit completed successfully");
     } catch (error) {
       console.error("Error in handleFormSubmit:", error);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Basic Information Section */}
-      <Card>
+         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+       {/* Basic Information Section */}
+       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Package className="w-5 h-5" />
@@ -210,7 +191,6 @@ export default function ProductForm({
               value={selectedCategory}
               onValueChange={(value) => {
                 setValue("category", value as any);
-                console.log("Category selected:", value);
               }}
             >
               <SelectTrigger className={errors.category ? "border-red-500" : ""}>
@@ -303,7 +283,6 @@ export default function ProductForm({
               value={selectedCondition}
               onValueChange={(value) => {
                 setValue("condition", value as "excellent" | "good" | "fair");
-                console.log("Condition selected:", value);
               }}
               className="grid grid-cols-1 gap-3"
             >
@@ -466,9 +445,10 @@ export default function ProductForm({
         <CardContent>
           <ImageUpload
             images={images}
-            onImagesChange={setImages}
+            onImagesChange={handleImagesChange}
             maxImages={3}
           />
+
         </CardContent>
       </Card>
 
@@ -478,12 +458,6 @@ export default function ProductForm({
           type="submit"
           disabled={isSubmitting}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-          onClick={() => {
-            console.log("Button clicked! Form valid:", isFormValid());
-            console.log("Current form values:", watch());
-            console.log("Images:", images);
-            console.log("isSubmitting:", isSubmitting);
-          }}
         >
           {isSubmitting ? (
             <div className="flex items-center space-x-2">

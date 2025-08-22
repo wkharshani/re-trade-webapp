@@ -9,7 +9,7 @@ import { ArrowLeft, Edit, Package } from "lucide-react";
 import Link from "next/link";
 import ProductForm from "@/components/product-form";
 import { getProductById, updateProduct } from "@/lib/product-actions";
-import type { ProductFormData } from "@/lib/validation-schemas";
+
 import type { Product } from "@/db/schema";
 
 export default function EditProductPage() {
@@ -42,27 +42,10 @@ export default function EditProductPage() {
     }
   };
 
-  const handleSubmit = async (data: ProductFormData) => {
+  const handleSubmit = async (formData: FormData) => {
     setIsSubmitting(true);
     
     try {
-      // Convert the form data to FormData for the server action
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("description", data.description);
-      formData.append("category", data.category);
-      formData.append("productType", data.productType);
-      formData.append("condition", data.condition);
-      formData.append("price", data.price.toString());
-      formData.append("location", data.location);
-      formData.append("contactNumber", data.contactNumber);
-      
-      // Add images as files (they are currently data URLs, need to convert back)
-      // For now, we'll handle this in the server action
-      data.images.forEach((image, index) => {
-        formData.append("images", image);
-      });
-
       const result = await updateProduct(productId, formData);
       
       if (result.success) {
@@ -117,7 +100,7 @@ export default function EditProductPage() {
   }
 
   // Convert product data to form format
-  const initialFormData: ProductFormData = {
+  const initialFormData = {
     name: product.name,
     description: product.description,
     category: product.category as any,

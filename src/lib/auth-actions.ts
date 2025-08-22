@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createSession, getRedirectPath } from "./session";
+import { createSession } from "./session";
 
 // Validation schemas
 const registerSchema = z.object({
@@ -96,9 +96,16 @@ export async function loginUser(formData: FormData) {
       return { success: false, error: "Invalid email or password" };
     }
 
-    // Create session and redirect path
-    const session = createSession(user[0]);
-    const redirectPath = getRedirectPath(user[0].userType);
+    // Create session
+    const session = await createSession({
+      userId: user[0].id,
+      email: user[0].email,
+      name: user[0].name,
+      role: user[0].userType,
+    });
+
+    // Determine redirect path
+    const redirectPath = user[0].userType === 'seller' ? '/seller/' : '/buyer/';
 
     return { 
       success: true, 

@@ -80,7 +80,6 @@ export const sriLankanCities = [
   "Badulla",
   "Nuwara Eliya",
   "Matale",
-  "Kandy",
   "Other"
 ] as const;
 
