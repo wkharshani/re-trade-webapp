@@ -134,8 +134,8 @@ export function ProductCard({
             </div>
             
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
-              <p className="text-sm text-gray-600 truncate">{product.category}</p>
+              <h3 className="font-medium text-gray-900 truncate min-h-[1.25rem]">{product.name}</h3>
+              <p className="text-sm text-gray-600 truncate min-h-[1.25rem]">{product.category}</p>
               <div className="flex items-center space-x-2 mt-1">
                 <Badge variant="secondary" className={getConditionColor(product.condition)}>
                   {product.condition}
@@ -217,8 +217,8 @@ export function ProductCard({
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 truncate">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{product.description}</p>
+                  <h3 className="font-semibold text-lg text-gray-900 truncate min-h-[1.5rem]">{product.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2 min-h-[2.5rem]">{product.description}</p>
                   
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="outline" className="text-xs">{product.category}</Badge>
@@ -344,10 +344,10 @@ export function ProductCard({
           {/* Product Info */}
           <div className="space-y-3">
             <div>
-              <h3 className="font-semibold text-gray-900 text-lg line-clamp-2">
+              <h3 className="font-semibold text-gray-900 text-lg line-clamp-2 min-h-[3rem]">
                 {product.name}
               </h3>
-              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+              <p className="text-sm text-gray-600 mt-1 line-clamp-2 min-h-[2.5rem]">
                 {product.description}
               </p>
             </div>
